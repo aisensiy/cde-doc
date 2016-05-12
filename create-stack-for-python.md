@@ -56,7 +56,7 @@ flask == 0.10.1
 
 `Dockerfile`:
 
-```
+```bash
 FROM alpine:3.3
 
 ENTRYPOINT ["./build.sh"]
@@ -75,7 +75,7 @@ RUN chmod a+x build.sh
 
 在 `build` 中需要构建一个可以将 code 变成 `runnable app` 的 `docker image`，那么在 `docker run flask-build` 时会执行 `build.sh` 生成一个名为 `$IMAGE` 的 `docker image`。`cde PaaS` 在执行 `build` 时会提供一些环境变量和 `docker volume` 用于提供项目代码和所有构建的镜像名称。`build.sh` 如下所示：
 
-```sh
+```bash
 #!/bin/bash
 
 CODEBASE_DIR=$CODEBASE
@@ -175,7 +175,7 @@ echo "Building image $IMAGE complete"
 
 在 `Dockerfile` 中安装 `curl` 并设置 `verify.sh` 为 `ENTRYPOINT`:
 
-```
+```bash
 FROM alpine:3.3
 
 ENTRYPOINT ["./verify.sh"]
@@ -234,7 +234,7 @@ echo
 
 为了构建栈需要将栈所依赖的 `build image` 和 `verify image` 推送到可以被 Cde PaaS 访问到的 docker registry。
 
-```
+```bash
 docker tag flask-build hub.deepi.cn/flask-build
 docker push hub.deepi.cn/flask-build
 docker tag flask-verify hub.deepi.cn/flask-verify
@@ -247,7 +247,7 @@ docker push hub.deepi.cn/flask-verify
 
 `stackfile.yml`:
 
-```
+```yaml
 name: "flask"
 description: "A flask stack"
 template:
@@ -286,7 +286,7 @@ services:
 
 然后利用 `cde` 客户端构建栈。
 
-```sh
+```bash
 cde login <controller-entry-point>
 cde stacks:create stackfile.yml
 ```
@@ -297,7 +297,7 @@ cde stacks:create stackfile.yml
 
 在成功创建栈之后可以利用 `template` 项目在 Cde PaaS 中创建应用测试栈。
 
-```sh
+```bash
 cd template
 cde apps:create test-flask flask
 git push cde master
