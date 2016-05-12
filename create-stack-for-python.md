@@ -28,7 +28,7 @@
 
 `template/main.py`:
 
-```
+```python
 from flask import Flask
 app = Flask(__name__)
 
@@ -75,7 +75,7 @@ RUN chmod a+x build.sh
 
 在 `build` 中需要构建一个可以将 code 变成 `runnable app` 的 `docker image`，那么在 `docker run flask-build` 时会执行 `build.sh` 生成一个名为 `$IMAGE` 的 `docker image`。`cde PaaS` 在执行 `build` 时会提供一些环境变量和 `docker volume` 用于提供项目代码和所有构建的镜像名称。`build.sh` 如下所示：
 
-```
+```sh
 #!/bin/bash
 
 CODEBASE_DIR=$CODEBASE
@@ -286,8 +286,10 @@ services:
 
 然后利用 `cde` 客户端构建栈。
 
-    cde login <controller-entry-point>
-    cde stacks:create stackfile.yml
+```sh
+cde login <controller-entry-point>
+cde stacks:create stackfile.yml
+```
     
 **注意** 在创建栈成功之后，栈的状态为 `UNPUBLISHED` 这意味着这个栈还不能被其他用户所使用，只有栈的构建者可以利用这个栈创建应用，并且在栈为 `UNPUBLISHED` 时是可以随时通过 `cde stacks:update` 修改栈的。当栈构建者认为这个栈已经足够稳定后可以通过 `cde stacks:publish <stack-id>` 的命令发布栈，之后其他的用户就可以使用这个栈创建应用了。
 
@@ -295,7 +297,7 @@ services:
 
 在成功创建栈之后可以利用 `template` 项目在 Cde PaaS 中创建应用测试栈。
 
-```
+```sh
 cd template
 cde apps:create test-flask flask
 git push cde master
