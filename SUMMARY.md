@@ -1,8 +1,15 @@
 # Summary
 
 1. [介绍](README.md)
-2. [获取 Cde](get_cde.md)
+2. [基础](basic-introduction.md)
+   1. [Quick Start Guide](quick-start-guide.md)
+   2. [重要概念](concepts.md)
+   3. [安装 Cde](install-cde.md)
+      1. [在 aws 部署集群](install-in-aws.md)
+      2. [水平扩展](scale-slaves.md)
+3. [获取 Cde](install-cde.md)
 3. [在 Cde 部署应用](deploy_app.md)
 4. [管理你的应用](app_manage.md)
-5. [创建栈](create_stack.md)
-   1. [创建和管理 python flask stack](create-stack-for-python.md)
+5. [栈](stack.md)
+   1. [创建和管理栈](create-stack.md)
+   2. [创建 python flask stack](create-stack-for-python.md)
