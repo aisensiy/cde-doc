@@ -113,11 +113,11 @@ echo "Building image $IMAGE complete"
 
 
 1. 采用 `synapse` 作为 `base image`
-   
+
    ```
    FROM hub.deepi.cn/synapse:0.1
    ```
-   
+
    `synapse` 用于服务发现，如果不采用 `synapse` 作为基础镜像，在应用需要依赖其他服务时没办法发现和使用其他应用。
 
 2. 提供 `python` 的执行环境：
@@ -146,13 +146,13 @@ echo "Building image $IMAGE complete"
    ```
    CMD ["python", "main.py"]
    ```
-   
+
 ### 在本地环境测试 build
 
 为了测试 build 是否可以运行，我们首先需要 build 这个 `flask-build`:
 
     cd build; docker build -t flask-build .
-    
+
 为了测试 build 是否可以生成 `runnable app` 我们需要提供在 `cde PaaS` 中 `builder` 所提供的环境变量和 `volume`:
 
     docker run \
@@ -161,7 +161,7 @@ echo "Building image $IMAGE complete"
      	-e IMAGE=test-flask \
      	-v /var/run/docker.sock:/var/run/docker.sock \
      	flask-build
-     	
+
 最后我们测试所生成的 `test-flask`
 
     $ docker run test-flask
@@ -225,11 +225,11 @@ echo
 构建 `flask-verify`
 
     docker build -t flask-verify .
-    
+
 测试 `flask-verify`
 
     docker run -e ENDPOINT=www.baidu.com flask-verify
-    
+
 ## 将 docker image 推送到 docker registry
 
 为了构建栈需要将栈所依赖的 `build image` 和 `verify image` 推送到可以被 Cde PaaS 访问到的 docker registry。
@@ -290,7 +290,7 @@ services:
 cde login <controller-entry-point>
 cde stacks:create stackfile.yml
 ```
-    
+
 **注意** 在创建栈成功之后，栈的状态为 `UNPUBLISHED` 这意味着这个栈还不能被其他用户所使用，只有栈的构建者可以利用这个栈创建应用，并且在栈为 `UNPUBLISHED` 时是可以随时通过 `cde stacks:update` 修改栈的。当栈构建者认为这个栈已经足够稳定后可以通过 `cde stacks:publish <stack-id>` 的命令发布栈，之后其他的用户就可以使用这个栈创建应用了。
 
 ## 在 cde 测试栈
@@ -302,27 +302,3 @@ cd template
 cde apps:create test-flask flask
 git push cde master
 ```
-
-## 更新栈
-
-如果在使用的过程中发现所使用的栈存在一些问题可以修改栈。
-
-首先需要标记栈为 `UNPUBLISHED` 
-
-    cde stacks:unpublish <stack-id>
-
-之后除去栈的创建者之外所有使用这个栈的应用都将不再能 `git push cde master`，并且也不能利用这个栈创建新的应用了。然后通过 `cde stacks:update <new-stackfile>` 更新栈。
-
-**注意** 对于正在被其他应用使用的技术栈，对其进行修改应该非常的谨慎。只有如下的情况是建议采用 `stacks:update` 去修改栈：
-
-1. bug typo 的修复
-2. 服务的小幅升级，例如 abc:v1.1 -> abc:v1.2
-
-如下的情况是不建议修改栈的:
-
-1. 更换服务，例如 `mysql` to `postgresql`
-2. 架构升级，`redis` to `redis-sentinel`
-3. 添加服务
-4. 修改栈中所使用的语言，框架，构建工具
-
-如上的修改已经彻底的改变了原有的技术栈，对栈的修改会导致使用该栈的应用构建或部署失败。当有如上的需求时应当创建新的栈并将相应的应用通过 `apps:stack-update` 更换栈。
