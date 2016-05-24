@@ -1,5 +1,8 @@
 # 创建和管理 jersey and mysql stack
-## workflow of cde
+## Workflow of cde
+
+![](workflow-of-cde.png)
+
 ## 准备工作
 ### 安装 docker-machine
 
@@ -52,9 +55,9 @@ docker pull hub.deepi.cn/jre-8.66:0.1
 docker pull tutum/mysql
 ```
 
-## build stack
+## Build stack
 
-### what do we need in a stack
+### What do we need in a stack
 
 在创建一个栈的时候，需要准备如下的内容：
 
@@ -63,7 +66,7 @@ docker pull tutum/mysql
 3. build image，用于将项目进行编译构建的 docker image
 4. verify image，用于对完成了 build 步骤的项目进行功能测试的 docker image
 
-### stack file
+### Stack file
 
 ```
 name: "..."
@@ -421,3 +424,78 @@ ENTRYPOINT=http://$ENDPOINT java -jar build/libs/verify-standalone.jar
      	jersey-mysql-verify
 
 ### test stack in cde
+
+1. Prepare stackfile
+	
+	```
+	name: "jersey-mysql"
+	description: "A sample java jersey stack"
+	template:
+	  type: "git"
+	  uri: 'https://github.com/aisensiy/cde-jersey-mysql-init-project.git'
+	tags:
+	    - "java"
+	languages:
+	  - name: "java"
+	    version: "1.8"
+	frameworks:
+	  - name: "jersey"
+	    version: "2.17"
+	  - name: "mybatis"
+	    version: "3.3"
+	tools:
+	  - name: "gradle"
+	    version: "2.8"
+	services:
+	  web:
+	    build:
+	      image: 'hub.deepi.cn/jersey-mysql-build'
+	      mem: 512
+	      cpus: 0.5
+	    verify:
+	      image: 'hub.deepi.cn/jersey-mysql-verify'
+	      mem: 512
+	      cpus: 0.5
+	    main: yes
+	    mem: 512
+	    cpus: 0.2
+	    instances: 1
+	    links:
+	      - db
+	    expose: 8088
+	    environment:
+	      DB_NAME: 'data_store'
+	      DB_USERNAME: 'mysql'
+	      DB_PASSWORD: 'mysql'
+	  db:
+	    mem: 512
+	    instances: 1
+	    cpus: 0.2
+	    image: "tutum/mysql"
+	    environment:
+	      MYSQL_ROOT_PASSWORD: "mysql"
+	      MYSQL_USER: "mysql"
+	      MYSQL_PASS: "mysql"
+	      ON_CREATE_DB: "data_store"
+	      MYSQL_PASSWORD: "mysql"
+	      MYSQL_DATABASE: "data_store"
+	      EXTRA_OPTS: "--lower_case_table_names=1"
+	    expose: 3306
+	    volumes:
+	      - db:/var/lib/mysql
+	```
+2. Create stack
+    
+   ```
+   cde stacks:create stackfile.yml
+   ```
+3. Create app
+
+	```
+	cde apps:create jersey-mysql-test-app jersey-mysql
+	```
+4. Push
+   
+   ```
+   git puch cde master
+   ```
