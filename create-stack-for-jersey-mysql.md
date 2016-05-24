@@ -497,5 +497,5 @@ ENTRYPOINT=http://$ENDPOINT java -jar build/libs/verify-standalone.jar
 4. Push
    
    ```
-   git puch cde master
+   git push cde master
    ```
