@@ -142,9 +142,6 @@ ENV DOCKER_VERSION 1.9.1
 RUN curl -sjkSL "https://${DOCKER_BUCKET}/builds/Linux/x86_64/docker-$DOCKER_VERSION" -o /usr/bin/docker \
 	&& chmod +x /usr/bin/docker
 
-RUN curl -jksSL https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64 -o /usr/local/bin/jq && \
-    chmod +x /usr/local/bin/jq
-
 ADD build.sh build.sh
 RUN chmod a+x build.sh
 ```
@@ -349,9 +346,6 @@ FROM hub.deepi.cn/gradle:0.1
 
 ENTRYPOINT ["./verify.sh"]
 
-RUN curl -jksSL https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64 -o /usr/local/bin/jq && \
-	chmod +x /usr/local/bin/jq
-RUN apk --update add git && rm /var/cache/apk/*
 WORKDIR /home
 ADD verify.sh verify.sh
 RUN chmod a+x verify.sh
