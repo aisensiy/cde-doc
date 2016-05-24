@@ -1,9 +1,25 @@
 # 创建和管理 jersey and mysql stack
+
+## 目录
+
+* Workflow of cde
+* 准备工作
+	* 安装 docker-machine
+	* 安装 cde 客户端
+* Build stack
+	* What do we need in a stack
+	* Stackfile
+	* A boilerplate project
+	* 创建 Build
+	* 创建 Verify
+	* 在 cde 中测试 stack
+
 ## Workflow of cde
 
 ![](workflow-of-cde.png)
 
 ## 准备工作
+
 ### 安装 docker-machine
 
 1. install [cask](https://caskroom.github.io/)
@@ -46,14 +62,6 @@
    ```
    cde -h
    ```
-   
-### (可选) pull docker images
-
-```
-docker pull hub.deepi.cn/gradle:0.1
-docker pull hub.deepi.cn/jre-8.66:0.1
-docker pull tutum/mysql
-```
 
 ## Build stack
 
@@ -62,11 +70,11 @@ docker pull tutum/mysql
 在创建一个栈的时候，需要准备如下的内容：
 
 1. stackfile，一个 cde paas 定义的栈的描述文件，其中定义了栈的所有依赖
-2. 一个适用于该技术栈的项目模板，所有使用该技术栈的项目都可以以此作为项目的 boilerplate
+2. 一个适用于该技术栈的项目模板，所有使用该技术栈的项目都可以以此作为项目的初始代码
 3. build image，用于将项目进行编译构建的 docker image
 4. verify image，用于对完成了 build 步骤的项目进行功能测试的 docker image
 
-### Stack file
+### Stackfile
 
 ```
 name: "..."
@@ -114,26 +122,33 @@ services:
       - data:/var/lib/mysql
 ```
 
-其中
+cde 所定义的技术栈文件如上所示，其中
 
 * `name` `description` `tags` `languages` `frameworks` `tools` 描述了整个栈的一些基本信息
-* `template` 描述了构建栈时所提供的 boilerplate。
-* `services` 描述了使用该栈所构建的应用所包含的服务。`services` 分为两种类型，一种是 `main service` 其包含了字段 `main: yes` 为所构建的应用。实例中的 `web` 为这样的服务，它包含了其所使用的 `build` `verify` 的 `image`。另一种为 `backing service` 是该项目所以来的其他应用。这些 `backing service` 都是已经都建好的 `docker image`，例如实例中的 `db` 为 `mysql` 的 `docker image`。
+* `template` 描述了构建栈时所提供的项目模板
+* `services` 描述了使用该栈所构建的应用所包含的服务。`services` 分为两种类型，一种是 `main service` 其包含了字段 `main: yes` 为所构建的应用。实例中的 `web` 为这样的服务，它包含了其所使用的 `build` `verify` 的 `image`。另一种为 `backing service` 是该项目所以来的其他应用。这些 `backing service` 都是已经都建好的 `docker image`，例如实例中的 `db` 为 `mysql` 的 `docker image`。一个 stack 只能包含一个 `main service`并可以包含多个 `backing service`。
 
-### a boilerpate project for jersey mysql
+### A boilerplate project
 
 在 cde 所构建的应用与采用其他方式构建的应用相比，需要遵循如下一些原则：
 
 1. 将应用对其他服务的依赖以环境变量的形式引入
 2. 项目包含三个部分，源代码、单元测试以及集成测试
 
+[https://github.com/aisensiy/cde-jersey-mysql-init-project/](https://github.com/aisensiy/cde-jersey-mysql-init-project/) 
+
 ### 创建 build
 
 #### 准备 Dockerfile
 
-build 本身是一个 docker image, 由于需要在这个 `docker image` 运行时创建 `runnable app` 的 docker image，因此所有的 `build` 都需要在 `Dockerfile` 中安装 `docker`。同时对于 java 项目而言需要将 java 构建为一个 jar 包。
+build image 的工作主要包含如下内容：
 
-`Dockerfile`:
+1. 为应用的单元测试准备环境（例如准备数据库）并执行单元测试
+2. 将应用编译打包
+3. 将应用容器化，准备构建容器的 Dockerfile
+4. 创建应用的 docker image
+
+`Dockerfile` 如下:
 
 ```bash
 FROM hub.deepi.cn/gradle:0.1
@@ -149,10 +164,18 @@ ADD build.sh build.sh
 RUN chmod a+x build.sh
 ```
 
-在 `build` 中需要构建一个可以将 code 变成 `runnable app` 的 `docker image`，那么在 `docker run jersey-mysql-build` 时会执行 `build.sh` 生成一个名为 `$IMAGE` 的 `docker image`。`cde PaaS` 在执行 `build` 时会提供一些环境变量和 `docker volume` 用于提供项目代码和所有构建的镜像名称。`build.sh` 如下所示：
+在 `build` 中需要构建一个可以将 code 变成 `runnable app` 的 `docker image`，因此所有的 `build` 都需要在 `Dockerfile` 中安装 `docker`。在 `docker run jersey-mysql-build` 时会执行 `build.sh` 生成一个名为 `$IMAGE` 的 `docker image`。`cde PaaS` 在执行 `build` 时会提供一些环境变量和 `docker volume` 用于提供项目代码和所有构建的 docker image 的名称。
+
+`build.sh` 如下所示：
 
 ```bash
 #!/bin/bash
+
+# builder 在调用 stack 的 build image 时会传入如下一些环境变量
+# APP_NAME:  应用的名称
+# CODEBASE:  应用代码的目录
+# CACHE_DIR: build image 可以使用这个目录来缓存build过程中的文件,比如maven的jar包,用来加速整个build流程
+# IMAGE:     build 成功之后image的名称
 
 set -eo pipefail
 
@@ -264,7 +287,7 @@ echo "Building image $IMAGE complete "
 echo
 ```
 
-可是看到 `build.sh` 首先进入项目目录，然后生成一个 `Dockerfile` 并使用这个 `Dockerfile` 构建一个新的 `$IMAGE`。所生成的 `Dockerfile` 的内容包含了如下工作:
+可以看到 `build.sh` 首先执行了应用的单元测试，然后将应用打包，最后生成一个 `Dockerfile` 并使用这个 `Dockerfile` 构建一个新的 `$IMAGE`。所生成的 `Dockerfile` 的内容包含了如下工作:
 
 
 1. 采用 `hub.deepi.cn/jre-8.66` 作为 `base image`
@@ -273,8 +296,8 @@ echo
    FROM hub.deepi.cn/jre-8.66:0.1
    ```
 
-   `jre-8.66` 是 cde paas 做过定制的 jre 环境，包含了服务发现的机制，如果不采用 `hub.deepi.cn/jre-8.66` 作为基础镜像，在应用需要依赖其他服务时没办法发现和使用其他应用。
-
+   `jre-8.66` 是 cde paas 做过定制的 jre 环境，包含了服务发现的机制
+   
 2. 安装 `flyway`：
 
 	```
@@ -285,13 +308,13 @@ echo
 	ENV PATH /usr/local/bin/flyway/:\$PATH
 	```
 	
-3. 添加 jar 包
+3. 添加准备好的 jar 包
 
    ```
    ADD build/libs/app-standalone.jar app-standalone.jar
    ```
    
-4. 拷贝数据库迁移的数据
+4. 拷贝 migration 文件
 
    ```
    ADD src/main/resources/db/migration dbmigration
@@ -321,11 +344,11 @@ echo
 
 为了测试 build 是否可以运行，我们首先需要 build 这个 `java-jersey-build`:
 
-    cd build; docker build -t java-jersey-build .
+    $ cd build; docker build -t java-jersey-build .
 
 为了测试 build 是否可以生成 `runnable app` 我们需要提供在 `cde PaaS` 中 `builder` 所提供的环境变量和 `volume`:
 
-    docker run \
+    $ docker run \
     	-v $PWD/template:/codebase \
      	-e CODEBASE=/codebase \
      	-e IMAGE=test-jersey-mysql \
@@ -342,7 +365,7 @@ echo
 
 #### 准备 Dockerfile
 
-`verify` 用于执行 `End to End` 的功能测试，通常是调用在项目中的测试。在 build 完成之后，`builder` 会根据 `stackfile` 构建一个 `lambda` 环境，并为 `verify` 提供 `lambda` 环境的 `endpoint` 用于测试。
+`verify` 用于执行 `End to End` 的功能测试。在 build 完成之后，`builder` 会根据 `stackfile` 构建一个 `lambda` 环境，并为 `verify` 提供 `lambda` 环境的 `endpoint` 用于测试。
 
 ```bash
 FROM hub.deepi.cn/gradle:0.1
@@ -358,6 +381,13 @@ RUN chmod a+x verify.sh
 
 ```
 #!/bin/bash
+
+# builder 在调用 stack 的 verify image 时会传入如下一些环境变量
+# APP_NAME:  应用的名称
+# CODEBASE:  应用代码的目录
+# CACHE_DIR: build image 可以使用这个目录来缓存build过程中的文件,比如maven的jar包,用来加速整个build流程
+# ENDPOINT:  在执行 verify 之前，builder 会采用已经在 build 过程中构建的 docker image 创建一个临时的
+#            lambda 环境，用于测试，ENDPOINT 就是这个 lambda 环境的入口，包含了 IP 和端口
 
 set -eo pipefail
 
@@ -412,18 +442,18 @@ ENTRYPOINT=http://$ENDPOINT java -jar build/libs/verify-standalone.jar
 
 构建 `jersey-mysql-verify`
 
-    docker build -t jersey-mysql-verify .
+    $ docker build -t jersey-mysql-verify .
 
 测试 `jersey-mysql-verify`
 
-    docker run -e ENDPOINT=www.baidu.com \
+    $ docker run -e ENDPOINT=www.baidu.com \
     	-v $PWD/template:/codebase \
      	-e CODEBASE=/codebase \
      	-v /tmp:/cache \
      	-e CACHE_DIR=/cache \
      	jersey-mysql-verify
 
-### test stack in cde
+### 在 cde 中测试 stack
 
 1. Prepare stackfile
 	
@@ -484,16 +514,19 @@ ENTRYPOINT=http://$ENDPOINT java -jar build/libs/verify-standalone.jar
 	    volumes:
 	      - db:/var/lib/mysql
 	```
+	
 2. Create stack
     
    ```
    cde stacks:create stackfile.yml
    ```
+   
 3. Create app
 
 	```
 	cde apps:create jersey-mysql-test-app jersey-mysql
 	```
+	
 4. Push
    
    ```
