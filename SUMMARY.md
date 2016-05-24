@@ -10,5 +10,6 @@
 5. [栈](stack.md)
    1. [创建和管理栈](create-stack.md)
    2. [创建 python flask stack](create-stack-for-python.md)
+   3. [创建 jersey mysql stack](create-stack-for-jersey-mysql.md)
 6. [进阶主题](advanced-topics.md)
    1. [组件介绍](components-overview.md)
