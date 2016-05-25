@@ -517,8 +517,10 @@ ENTRYPOINT=http://$ENDPOINT java -jar build/libs/verify-standalone.jar
 2. Create stack
     
    ```
+   cde register <entrypoint-of-cde>
+   cde keys:add <key>
    cde stacks:create stackfile.yml
-   ```
+   ```   
    
 3. Create app
 
