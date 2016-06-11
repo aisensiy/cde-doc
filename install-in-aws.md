@@ -1,6 +1,6 @@
 # 在 aws 部署集群
 
-目录 `contrib/ansible/iaas/aws` 为对 aws 环境做部署的脚本，本地环境的安装参见[安装 cde](./install-cde-raw.md)
+目录 `contrib/ansible/iaas/aws` 为对 aws 环境做部署的脚本，本地环境的安装以及 PaaS 的部署参见[安装 cde](./install-cde-raw.md)，这里只包含基础设施的搭建。
 
 1. 安装 aws 客户端及其依赖
 	
@@ -43,13 +43,13 @@
 8. 基础环境部署
 
 	```
-	ansible-playbook --extra-vars="@extravars_ha.json" --connection=ssh --timeout=30 --limit='all' --inventory-file=hosts_ha playbooks/master.yml
-	ansible-playbook --extra-vars="@extravars_ha.json" --connection=ssh --timeout=30 --limit='all' --inventory-file=hosts_ha playbooks/slave.yml
-	ansible-playbook --extra-vars="@extravars_ha.json" --connection=ssh --timeout=30 --limit='all' --inventory-file=hosts_ha playbooks/elasticsearch.yml
-	ansible-playbook --extra-vars="@extravars_ha.json" --connection=ssh --timeout=30 --limit='all' --inventory-file=hosts_ha playbooks/ceph.yml
-	ansible-playbook --extra-vars="@extravars_ha.json" --connection=ssh --timeout=30 --limit='all' --inventory-file=hosts_ha playbooks/flocker-agent.yml
-	ansible-playbook --extra-vars="@extravars_ha.json" --connection=ssh --timeout=30 --limit='all' --inventory-file=hosts_ha playbooks/flocker-control.yml
+	ansible-playbook --extra-vars="@extravars.json" --connection=ssh --timeout=30 --limit='all' --inventory-file=hosts playbooks/master.yml
+	ansible-playbook --extra-vars="@extravars.json" --connection=ssh --timeout=30 --limit='all' --inventory-file=hosts playbooks/slave.yml
+	ansible-playbook --extra-vars="@extravars.json" --connection=ssh --timeout=30 --limit='all' --inventory-file=hosts playbooks/elasticsearch.yml
+	ansible-playbook --extra-vars="@extravars.json" --connection=ssh --timeout=30 --limit='all' --inventory-file=hosts playbooks/ceph.yml
+	ansible-playbook --extra-vars="@extravars.json" --connection=ssh --timeout=30 --limit='all' --inventory-file=hosts playbooks/rbd-driver.yml
 	```
+	
 9. 准备一个带有桌面环境的机器以访问集群中的 `mesos`。
 
 	在aws开一台带有桌面操作系统的机器

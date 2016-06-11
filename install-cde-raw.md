@@ -65,8 +65,7 @@ ansible-playbook --extra-vars="@extra_vars.json" --connection=ssh --timeout=30 -
 ansible-playbook --extra-vars="@extra_vars.json" --connection=ssh --timeout=30 --limit='all' --inventory-file=hosts -s -vvvv master.yml
 ansible-playbook --extra-vars="@extra_vars.json" --connection=ssh --timeout=30 --limit='all' --inventory-file=hosts -s -vvvv slave.yml
 ansible-playbook --extra-vars="@extra_vars.json" --connection=ssh --timeout=30 --limit='all' --inventory-file=hosts -s -vvvv ceph.yml
-ansible-playbook --extra-vars="@extra_vars.json" --connection=ssh --timeout=30 --limit='all' --inventory-file=hosts -s -vvvv flocker-agent.yml
-ansible-playbook --extra-vars="@extra_vars.json" --connection=ssh --timeout=30 --limit='all' --inventory-file=hosts -s -vvvv flocker-control.yml
+ansible-playbook --extra-vars="@extra_vars.json" --connection=ssh --timeout=30 --limit='all' --inventory-file=hosts -s -vvvv rbd-driver.yml
 ```
 
 在浏览器打开 `http://{ONE_MARATHON_NODE_IP}:8080` 查看 `marathon` 是否安装成，在 `http://{ONE_MARATHON_NODE_IP}:5050` 查看 mesos 是否安装成功。 
