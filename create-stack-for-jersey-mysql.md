@@ -1,4 +1,4 @@
-# 创建和管理 jersey and mysql stack
+# Create stack for jersey mysql application
 
 ## 目录
 
