@@ -28,6 +28,16 @@ Docker 是一个轻量级虚拟化方案，采用 docker 将应用容器化后�
 
 cde 的组件采用 docker 进行部署，所有运行在 cde 中的应用也都进行了容器化。
 
+## 应用（Application)
+
+应用是指部署在 cde 中的最小部署单元，对应一个代码版本库。它可能仅仅包含一个主服务（main service），例如一个不依赖其他服务的前端单页应用，也可能包含其他的服务，例如 MySQL。
+
+*注意* cde 中的应用推荐采用微服务的架构，一个前端应用需要依赖后端 api 才能提供价值，但这不代表一个微服务需要包含前后端两个代码库。
+
+## 后端服务（Backing services）
+
+后端服务是指程序运行所需要的通过网络调用的各种服务，如数据库（MySQL，CouchDB），消息/队列系统（RabbitMQ，Beanstalkd），SMTP 邮件发送服务（Postfix），以及缓存系统（Memcached）。
+
 ## 构建（Build）, 验证（Verify）, 部署（Deploy）
 
 cde 将应用的生命周期定义为一个个的 `build, verify, deploy`。
