@@ -8,6 +8,10 @@ cde 可以构建任何语言、任何框架的应用。整个构建的过程都�
 
 其中 `stackfile` 为栈描述文件，它描述了一个代码库在 `build` `verify` `deploy` 的过程中所需要的打包编译流程、功能测试脚本以及部署时所依赖的服务。
 
+<video controls="1" style="width: 80%;height: auto;left: 10%;">
+	<source src="http://o8p12ybem.bkt.clouddn.com/stack%20management%20demo.mp4">Your browser does not support the <mark class="highlight">video</mark> tag.</source>
+</video>
+
 ## 特性
 
 1. **容器管理集群** cde 底层采用 `mesos` + `marathon` 作为其基础设施并在 `marathon` 中以容器的形式运行所有的应用，应用以及其所依赖的服务都是以容器的形式出现在集群中，任何才 docker hub 中所出现的 image 都可以在 cde 中使用。
