@@ -8,9 +8,7 @@ cde 可以构建任何语言、任何框架的应用。整个构建的过程都�
 
 其中 `stackfile` 为栈描述文件，它描述了一个代码库在 `build` `verify` `deploy` 的过程中所需要的打包编译流程、功能测试脚本以及部署时所依赖的服务。
 
-<video controls="1" style="width: 80%;height: auto;left: 10%;display: block;margin: 0 auto;">
-	<source src="http://o8p12ybem.bkt.clouddn.com/stack%20management%20demo.mp4">Your browser does not support the <mark class="highlight">video</mark> tag.</source>
-</video>
+<script type="text/javascript" src="https://asciinema.org/a/evfqs2o1ox8ch70chlzmomgcp.js" id="asciicast-evfqs2o1ox8ch70chlzmomgcp" async></script>
 
 ## 特性
 
