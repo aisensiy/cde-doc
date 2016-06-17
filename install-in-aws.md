@@ -2,19 +2,19 @@
 
 目录 `contrib/ansible/iaas/aws` 为对 aws 环境做部署的脚本，本地环境的安装以及 PaaS 的部署参见[安装 cde](./install-cde-raw.md)，这里只包含基础设施的搭建。
 
-1. 安装 aws 客户端及其依赖
+安装 aws 客户端及其依赖
 	
-	```
+    ```
     brew install awscli
     brew install jq
-	```
-2. 配置 aws 的 key 以及机器默认的区域
+    ```
+配置 aws 的 key 以及机器默认的区域
 
 	```
 	aws configure
 	```
 	
-3. 配置aws机器以及类型
+配置aws机器以及类型
 
 	```
 	$CDE/contrib/ansible/iaas/aws/
@@ -22,35 +22,38 @@
 	```
 	更改相应的变量配置
 	
-4. 初始化aws机器
+初始化aws机器
 
-	```
-    ./provision.sh cde
-	```
-	
-5. 准备aws hosts 文件
-   在运行过 `./provision.sh cde` 之后会在当前目录下生成文件名为 `infrastructure.json` 的机器清单以及 `hosts` 文件
-   
-6. 准备相应的extravars.json 文件
-   根据生成的infrastructure.json 来准备相应的extravars.json 文件,具体参照[安装 cde](./install-cde-raw.md)
+    ```
+    export STACK_NAME=cde
+    ./provision.sh
+    ```
 
-7. 获取依赖的ansible role
+生成 ansible 自动化部署所需要的配置文件 `host` 与 `extravars.json`
+
+```
+./prepare_hosts.sh
+./prepare_extravars.sh
+```
+
+获取依赖的ansible role
 	
 	```
 	ansible-galaxy install -r playbooks/roles.yml -p playbooks/roles --force
 	```
 	
-8. 基础环境部署
+基础环境部署
 
 	```
-	ansible-playbook --extra-vars="@extravars.json" --connection=ssh --timeout=30 --limit='all' --inventory-file=hosts playbooks/master.yml
-	ansible-playbook --extra-vars="@extravars.json" --connection=ssh --timeout=30 --limit='all' --inventory-file=hosts playbooks/slave.yml
-	ansible-playbook --extra-vars="@extravars.json" --connection=ssh --timeout=30 --limit='all' --inventory-file=hosts playbooks/elasticsearch.yml
-	ansible-playbook --extra-vars="@extravars.json" --connection=ssh --timeout=30 --limit='all' --inventory-file=hosts playbooks/ceph.yml
-	ansible-playbook --extra-vars="@extravars.json" --connection=ssh --timeout=30 --limit='all' --inventory-file=hosts playbooks/rbd-driver.yml
+	cd ../../playbooks
+	ansible-playbook --extra-vars="@../iaas/aws/extravars.json" --connection=ssh --timeout=30 --limit='all' --inventory-file=../iaas/aws/hosts master.yml
+	ansible-playbook --extra-vars="@../iaas/aws/extravars.json" --connection=ssh --timeout=30 --limit='all' --inventory-file=../iaas/aws/hosts slave.yml
+	ansible-playbook --extra-vars="@../iaas/aws/extravars.json" --connection=ssh --timeout=30 --limit='all' --inventory-file=../iaas/aws/hosts elasticsearch.yml
+	ansible-playbook --extra-vars="@../iaas/aws/extravars.json" --connection=ssh --timeout=30 --limit='all' --inventory-file=../iaas/aws/hosts ceph.yml
+	ansible-playbook --extra-vars="@../iaas/aws/extravars.json" --connection=ssh --timeout=30 --limit='all' --inventory-file=hosts rbd-driver.yml
 	```
 	
-9. 准备一个带有桌面环境的机器以访问集群中的 `mesos`。
+准备一个带有桌面环境的机器以访问集群中的 `mesos`。
 
 	在aws开一台带有桌面操作系统的机器
 	
