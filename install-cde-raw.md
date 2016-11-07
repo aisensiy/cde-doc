@@ -86,7 +86,7 @@ export CDECTL_TUNNEL=ONE_MASTER_MACHINE_IP
 设置远程机器的用户
 
 ```
-export SSH_USERNAME={username}
+export CDECTL_USERNAME={username}
 ```
 
 添加 `public key`
@@ -94,6 +94,12 @@ export SSH_USERNAME={username}
 ```
 eval `ssh-agent -s`
 ssh-add ~/.ssh/id_rsa.pub
+```
+
+设置 Register
+
+```
+export DEV_REGISTRY=hub.deepi.cn
 ```
 
 安装 PaaS 的组件
