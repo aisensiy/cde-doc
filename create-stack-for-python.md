@@ -85,13 +85,7 @@ cd $CODEBASE_DIR
 echo 'write Dockerfile'
 
 (cat << EOF
-FROM hub.deepi.cn/synapse:0.1
-
-RUN apk add --no-cache python && \
-    python -m ensurepip && \
-    rm -r /usr/lib/python*/ensurepip && \
-    pip install --upgrade pip setuptools && \
-    rm -r /root/.cache
+FROM python:2.7
 
 ENV APP_HOME /myapp
 RUN mkdir \$APP_HOME
@@ -112,36 +106,24 @@ echo "Building image $IMAGE complete"
 可是看到 `build.sh` 首先进入项目目录，然后生成一个 `Dockerfile` 并使用这个 `Dockerfile` 构建一个新的 `$IMAGE`。所生成的 `Dockerfile` 的内容包含了如下工作:
 
 
-1. 采用 `synapse` 作为 `base image`
+1. 采用 `python:2.7` 作为 `base image`
 
    ```
-   FROM hub.deepi.cn/synapse:0.1
+   FROM python:2.7
    ```
-
-   `synapse` 用于服务发现，如果不采用 `synapse` 作为基础镜像，在应用需要依赖其他服务时没办法发现和使用其他应用。
-
-2. 提供 `python` 的执行环境：
-
-	```
-	RUN apk add --no-cache python && \
-	    python -m ensurepip && \
-	    rm -r /usr/lib/python*/ensurepip && \
-	    pip install --upgrade pip setuptools && \
-	    rm -r /root/.cache
-	```
-3. 安装项目依赖
+2. 安装项目依赖
 
    ```
    ADD requirements.txt \$APP_HOME/requirements.txt
    RUN pip install -r \$APP_HOME/requirements.txt
    ```
-4. 拷贝项目代码
+3. 拷贝项目代码
 
    ```
    ADD . \$APP_HOME
    ```
 
-5. 启动应用
+4. 启动应用
 
    ```
    CMD ["python", "main.py"]
@@ -156,7 +138,7 @@ echo "Building image $IMAGE complete"
 为了测试 build 是否可以生成 `runnable app` 我们需要提供在 `cde PaaS` 中 `builder` 所提供的环境变量和 `volume`:
 
     docker run \
-    	-v template:/codebase \
+    	-v $PWD/template:/codebase \
      	-e CODEBASE=/codebase \
      	-e IMAGE=test-flask \
      	-v /var/run/docker.sock:/var/run/docker.sock \
