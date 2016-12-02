@@ -17,7 +17,9 @@
 │   └── requirements.txt
 └── verify
     ├── Dockerfile
-    └── verify.sh
+    └── rootfs
+        └── bin
+            └── verify.sh
 ```
 
 如上所示为构建栈时的目录结构，其中 `build` 和 `verify` 分别对应着 `stackfile` 中需要构建 `build image` 和 `verify image` 的 `Dockerfile`。`template` 为用于构建栈的测试项目。
@@ -155,52 +157,114 @@ echo "Building image $IMAGE complete"
 
 `verify` 用于执行 `End to End` 的功能测试，通常是调用在项目中的测试。这里我们通过简单的 `curl` 测试应用的路由是否工作。
 
-在 `Dockerfile` 中安装 `curl` 并设置 `verify.sh` 为 `ENTRYPOINT`:
+`verify` 的 Dockerfile 中包含如下工作
+
+1. 安装 verify 执行所需要的一些以来，例如 `curl`
+2. 安装在 cde 中创建临时环境的工具 `lambda`
+3. 添加用于执行功能测试的脚本
+
+`Dockerfile`:
 
 ```bash
 FROM alpine:3.3
 
-ENTRYPOINT ["./verify.sh"]
+ENTRYPOINT ["verify.sh"]
 
 RUN apk update && apk upgrade && apk --update add \
-    libstdc++ tzdata bash curl
+    libstdc++ tzdata bash curl jq
 
-ADD verify.sh verify.sh
-RUN chmod a+x verify.sh
+RUN apk add --no-cache python && \
+    python -m ensurepip && \
+    rm -r /usr/lib/python*/ensurepip && \
+    pip install --upgrade pip setuptools && \
+    rm -r /root/.cache
+
+RUN curl -sjkSL "https://github.com/tw-cde/cde-client-binary/releases/download/0.1.5/lambda" -o /bin/lambda
+
+COPY rootfs /
+
+RUN chmod -R +x /bin/
 ```
+
+用于执行功能测试的脚本如下所示
 
 `verify.sh`:
 
-```
+```bash
 #!/bin/bash
 
 set -eo pipefail
 
 on_exit() {
     last_status=$?
+    trap '' HUP INT TERM QUIT ABRT EXIT
+    local exit_status=0
     if [ "$last_status" != "0" ]; then
-        exit 1;
-    else
-        exit 0;
+        if [ -f "process.log" ]; then
+          cat process.log
+        fi
+        exit_status=1
     fi
+
+    if [ "$LAMBDA_URI" != "" ]; then
+        echo "Clean lambda env..."
+        lambda deprovision --lambda-uri "$LAMBDA_URI"
+        clean_status=$?
+        if [ "$clean_status" != "0" ]; then
+            echo "Clean lambda env fail"
+        else
+            echo "Clean lambda env success"
+        fi
+    fi
+
+    trap - HUP INT TERM QUIT ABRT EXIT
+    exit ${exit_status}
 }
 
 trap on_exit HUP INT TERM QUIT ABRT EXIT
 
-export ENTRYPOINT=http://$ENDPOINT
+if [ -n "$BUILD_URI" ]; then
+  echo "Launch lambda env..."
+  LAMBDA_URI=$(lambda provision --build-uri "$BUILD_URI")
+  echo "Launch lambda success"
+  cd $CODEBASE
+  LAMBDA_INFO=$(lambda info --lambda-uri $LAMBDA_URI)
+  ENDPOINT_HOST=$(echo $LAMBDA_INFO|jq --raw-output '.services.main.endpoint.internal.host')
+  ENDPOINT_PORT=$(echo $LAMBDA_INFO|jq --raw-output '.services.main.endpoint.internal.port')
+  ENDPOINT=$ENDPOINT_HOST:$ENDPOINT_PORT
+fi
 
-CODEBASE_DIR=$CODEBASE
 
-cd $CODEBASE_DIR
+if [ -z "$ENDPOINT" ]; then
+  echo 'environment ENDPOINT is not given'
+  exit 1
+fi
 
 echo
 echo "Run verify ..."
-curl $ENTRYPOINT
+curl http://$ENDPOINT
 echo "Run verify complete"
 echo
 ```
 
-在 `verify.sh` 通过 `curl $ENTRYPOINT` 判断应用的 `/` 路由是否有效，其中 `ENDPOINT` 在 cde PaaS 在创建 `lambda` 环境之后提供给 `verify`。
+**注意** `verify.sh` 中一般都会包含两部分模板代码
+
+1. 启动并获取临时环境。在 `cde` 中运行 `verify` 的时候会为其提供一个 `$BUILD_URI`，它包含了在 `build` 阶段创建的一个 `artifact`。然后利用 `lambda` 工具创建一个运行该应用的临时环境并获取改临时环境的入口
+   ```bash
+   if [ -n "$BUILD_URI" ]; then
+     echo "Launch lambda env..."
+     LAMBDA_URI=$(lambda provision --build-uri "$BUILD_URI")
+     echo "Launch lambda success"
+     cd $CODEBASE
+     LAMBDA_INFO=$(lambda info --lambda-uri $LAMBDA_URI)
+     ENDPOINT_HOST=$(echo $LAMBDA_INFO|jq --raw-output '.services.main.endpoint.internal.host')
+     ENDPOINT_PORT=$(echo $LAMBDA_INFO|jq --raw-output '.services.main.endpoint.internal.port')
+     ENDPOINT=$ENDPOINT_HOST:$ENDPOINT_PORT
+   fi
+   ```
+2. `on_exit` 函数。用于在执行 `verify` 之后的资源清理。
+
+在 `verify.sh` 通过 `curl $ENDPOINT` 判断应用的 `/` 路由是否有效，其中 `ENDPOINT` 在 cde PaaS 在创建 `lambda` 环境之后提供给 `verify`。而在我们本地测试时测试通过环境变量直接传递给 `verify`。
 
 ### 在本地环境测试 verify
 
@@ -264,9 +328,9 @@ services:
         timeout: "2"
 ```
 
-所定义的栈只有一个服务 `main`，并且所暴露的端口为 `flask` 的默认端口 `5000`，`stackfile` 的详细定义见 [stackfile]()。
+所定义的栈只有一个服务 `main`，并且所暴露的端口为 `flask` 的默认端口 `5000`，`stackfile` 的详细定义见上方 yaml 文件。
 
-然后利用 `cde` 客户端构建栈。
+然后利用 `cde` 客户端提交栈。
 
 ```bash
 cde login <controller-entry-point>
