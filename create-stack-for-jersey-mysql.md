@@ -20,45 +20,22 @@
 
 ## 准备工作
 
-### 安装 docker-machine
+### 安装 Docker for Mac
 
-1. install [cask](https://caskroom.github.io/)
-
-   ```
-   brew tap caskroom/cask
-   brew install cask
-   ```
-2. install [docker toolbox](https://www.docker.com/products/docker-toolbox)
-
-   ```
-   brew cask install dockertoolbox
-   ```
-3. install a docker machine
-
-	```
-	docker-machine create --driver=virtualbox \
-						  --virtualbox-disk-size=100000 \
-						  --virtualbox-memory=400 \
-						  --virtualbox-host-dns-resolver \
-						  --virtualbox-dns-proxy  \
-						  --engine-insecure-registry=10.0.0.0/8 \
-						  --engine-insecure-registry=172.16.0.0/12 \
-						  --engine-insecure-registry=192.168.0.0/16 \
-						  registry
-	```
+详细的安装步骤见 https://docs.docker.com/engine/installation/mac/
 
 ### 安装 cde 客户端
 
-1. 在浏览器打开链接 `https://drive.google.com/open?id=0B2uUP4BIHpNDRWRvV0Q2Z3F5YTQ` 下载 cde 客户端
+1. 在 [https://github.com/tw-cde/cde-client-binary/releases](https://github.com/tw-cde/cde-client-binary/releases) 下载最新的客户端
 2. 将 cde 客户端拷贝到 `$PATH` 下
-   
+
    ```
    cd ~/Downloads
    chmod 755 cde
    cp cde /usr/local/bin
    ```
 3. 检查 cde 客户端是否可以使用
-   
+
    ```
    cde -h
    ```
@@ -76,7 +53,7 @@
 
 ### Stackfile
 
-```
+```yaml
 name: "..."
 description: "..."
 template:
@@ -135,7 +112,7 @@ cde 所定义的技术栈文件如上所示，其中
 1. 将应用对其他服务的依赖以环境变量的形式引入
 2. 项目包含三个部分，源代码、单元测试以及集成测试
 
-[https://github.com/aisensiy/cde-jersey-mysql-init-project/](https://github.com/aisensiy/cde-jersey-mysql-init-project/) 
+[https://github.com/aisensiy/cde-jersey-mysql-init-project/](https://github.com/aisensiy/cde-jersey-mysql-init-project/)
 
 ### 创建 build
 
@@ -296,7 +273,7 @@ echo
    ```
 
    `jre-8.66` 是 cde paas 做过定制的 jre 环境，包含了服务发现的机制
-   
+
 2. 安装 `flyway`：
 
 	```
@@ -306,13 +283,13 @@ echo
 	    | tar -xzf - -C /usr/local/bin/flyway --strip-components=1
 	ENV PATH /usr/local/bin/flyway/:\$PATH
 	```
-	
+
 3. 添加准备好的 jar 包
 
    ```
    ADD build/libs/app-standalone.jar app-standalone.jar
    ```
-   
+
 4. 拷贝 migration 文件
 
    ```
@@ -329,7 +306,7 @@ echo
    ```
 
 	`wrapper.sh`:
-	
+
    ```
 	#!/bin/sh
 
@@ -385,43 +362,56 @@ RUN chmod a+x verify.sh
 # APP_NAME:  应用的名称
 # CODEBASE:  应用代码的目录
 # CACHE_DIR: build image 可以使用这个目录来缓存build过程中的文件,比如maven的jar包,用来加速整个build流程
-# ENDPOINT:  在执行 verify 之前，builder 会采用已经在 build 过程中构建的 docker image 创建一个临时的
-#            lambda 环境，用于测试，ENDPOINT 就是这个 lambda 环境的入口，包含了 IP 和端口
 
 set -eo pipefail
 
 on_exit() {
     last_status=$?
+    trap '' HUP INT TERM QUIT ABRT EXIT
+    local exit_status=0
     if [ "$last_status" != "0" ]; then
         if [ -f "process.log" ]; then
           cat process.log
         fi
-
-        exit 1;
-    else
-        exit 0;
+        exit_status=1
     fi
+
+    if [ "$LAMBDA_URI" != "" ]; then
+        echo "Clean lambda env..."
+        lambda deprovision --lambda-uri "$LAMBDA_URI"
+        clean_status=$?
+        if [ "$clean_status" != "0" ]; then
+            echo "Clean lambda env fail"
+        else
+            echo "Clean lambda env success"
+        fi
+    fi
+
+    trap - HUP INT TERM QUIT ABRT EXIT
+    exit ${exit_status}
 }
 
 trap on_exit HUP INT TERM QUIT ABRT EXIT
 
-cd $CODEBASE
+if [ -n "$BUILD_URI" ]; then
+  echo "Launch lambda env..."
+  LAMBDA_URI=$(lambda provision --build-uri "$BUILD_URI")
+  echo "Launch lambda success"
+  cd $CODEBASE
+  LAMBDA_INFO=$(lambda info --lambda-uri $LAMBDA_URI)
+  ENDPOINT_HOST=$(echo $LAMBDA_INFO|jq --raw-output '.services.web.endpoint.internal.host')
+  ENDPOINT_PORT=$(echo $LAMBDA_INFO|jq --raw-output '.services.web.endpoint.internal.port')
+  ENDPOINT="http://$ENDPOINT_HOST:$ENDPOINT_PORT"
+fi
 
 echo
 echo "Building verify jar..."
-GRADLE_USER_HOME="$CACHE_DIR" gradle itestJar &>process.log
+GRADLE_USER_HOME="$CACHE_DIR" gradle itest
 echo "Build verify finished"
 echo
-
-echo
-echo "Start verify"
-ENTRYPOINT=http://$ENDPOINT java -jar build/libs/verify-standalone.jar
-echo "Verify finished"
-echo
-
 ```
 
-在 template 中有一个文件件 `src/itest` 包含了用于功能测试的 `Concordian` 代码。通过 
+在 template 中有一个文件件 `src/itest` 包含了用于功能测试的 `Concordian` 代码。通过
 
 ```
 GRADLE_USER_HOME="$CACHE_DIR" gradle itestJar &>process.log
@@ -429,7 +419,7 @@ GRADLE_USER_HOME="$CACHE_DIR" gradle itestJar &>process.log
 
 将测试代码打包。
 
-通过 
+通过
 
 ```
 ENTRYPOINT=http://$ENDPOINT java -jar build/libs/verify-standalone.jar
@@ -455,7 +445,7 @@ ENTRYPOINT=http://$ENDPOINT java -jar build/libs/verify-standalone.jar
 ### 在 cde 中测试 stack
 
 1. Prepare stackfile
-	
+
 	```
 	name: "jersey-mysql"
 	description: "A sample java jersey stack"
@@ -513,23 +503,21 @@ ENTRYPOINT=http://$ENDPOINT java -jar build/libs/verify-standalone.jar
 	    volumes:
 	      - db:/var/lib/mysql
 	```
-	
+
 2. Create stack
-    
+
    ```
-   cde register <entrypoint-of-cde>
-   cde keys:add <key>
    cde stacks:create stackfile.yml
    ```   
-   
+
 3. Create app
 
 	```
 	cde apps:create jersey-mysql-test-app jersey-mysql
 	```
-	
+
 4. Push
-   
+
    ```
    git push cde master
    ```
