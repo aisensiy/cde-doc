@@ -40,6 +40,16 @@ cde apps:create test-flask flask
 
 其中 `test-flask` 为所要创建的项目名称，`flask` 是所选用的技术栈
 
+## 使用本地开发环境
+
+cde 提供 `dev` 命令用于创建本地环境，通过如下命令在本地构建开发环境
+
+```
+cde dev:up
+```
+
+`cde dev` 采用 `docker-compose` 构建一个本地开发环境，在当前项目目录下 `.local` 目录中包含所使用的 `dockercompose.yml`
+
 ## 编写代码
 
 在编辑器中完成代码编写之后，可以通过下面命令及时将代码 push 到 PaaS上，过程的日志会打印在控制台，如果最终 build success 则可以跳转到下一步；如果 build 失败，则需要开发人员根据日志报错修复代码错误。
@@ -67,3 +77,22 @@ cde routes:bind test.xxx.com/ test-flask
 ```
 cde apps:info
 ```
+
+## 采用技术栈构建 docker image
+
+`cde` 的 `build` 过程本质上是采用一个 `build image` 将代码构建为了一个可以运行的 `service image`，这个 `service image` 本质上是可以运行在任何支持 `docker` 的地方的。如需将项目部署到 `cde` 意外的地方可以通过在本地构建的方式获取 `service image`：
+
+每个 stack 都会对应一个 `build image`，例如 `jersey-mysql` stack 的 `build image` 为 `hub.deepi.cn/jersey-mysql-build`。每个 stack 的 `build image` 可以在 [https://github.com/tw-cde/cde-stacks](https://github.com/tw-cde/cde-stacks) 中每个技术栈目录下的 `stackfile.yml` 中查看。
+
+参考 [创建 python flask stack](./create-stack-for-python) 以及 [创建 jersey mysql stack](./create-stack-for-jersey-mysql.md) 在本地构建 `service image`。通过命令
+
+```
+docker run \
+  -v $PWD/template:/codebase \
+  -e CODEBASE=/codebase \
+  -e IMAGE=jersey-mysql-service \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  hub.deepi.cn/jersey-mysql-build
+```
+
+构建 `service image`: jersey-mysql-service
